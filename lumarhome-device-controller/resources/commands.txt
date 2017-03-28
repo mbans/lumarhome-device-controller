@@ -1,0 +1,7 @@
+
+
+
+:Curl Commands: 
+curl -X POST http://localhost:5000/bulbs/livingroom_biglight/power/ -F "power=on"
+curl -X POST http://localhost:5000/bulbs/livingroom_biglight/power/ -F "power=off"
+
