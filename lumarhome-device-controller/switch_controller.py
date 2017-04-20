@@ -21,12 +21,12 @@ accounts = [{
 #
 #Retrieve the statuses of all switches for a given user
 #
-def getAllSwitchStatuses(username):
+def getAllSwitchStatuses():
     statusReponses=[]
     acc = {}
     for account in accounts:
         username = account['username']
-        if username == username:
+        if username == "lumarhome":
             acc=account
             break
         
@@ -39,16 +39,21 @@ def getAllSwitchStatuses(username):
     print ("Discovered " + str(len(statusReponses)) + " switches: ") 
     return statusReponses
 
-
-def setSwitchStatus(switchName,state,username):
-    switch = getSwitch(switchName, username)
+#
+# set switch to on or off
+#
+def power(switchName,state):
+    switch = getSwitch(switchName)
+    statusResp = getSwitchStatus(switch)
     setState(switch, state)
-
+    
+    statusResp['state'] = state    
+    return statusResp
 #
 # POST a request to obtain the status of the given switch belonging to a given account 
 #
-def getSwitchStatusByN(switchName, username):
-    switch = getSwitch(switchName, username)
+def getSwitchStatusByN(switchName):
+    switch = getSwitch(switchName)
     statusResponse = postStatusRequest(switch)
     return convertStatusResponse(statusResponse, switch)
 
@@ -67,15 +72,14 @@ def postStatusRequest(switch):
         theResponse =  requests.post(url, json=statusReq)
         return theResponse.json()
 
-#
 # Retrieve a given switch details for user
 #
-def getSwitch(switchName, username):
-    print "Retrieving " + switchName + " for account " + username + " from db (TODO - harwired at moment)"
+def getSwitch(switchName):
+    print "Retrieving " + switchName  + " from db (TODO - harwired at moment)"
     
     for account in accounts:
         username = account['username']
-        if username != username:
+        if username != "lumarhome":
             continue
         
         #Search for switch with name/type
@@ -92,12 +96,11 @@ def getSwitch(switchName, username):
 def setState(switch, state):
     stateResponse = requests.post(switch['url'], json=createStateRequest(switch, state))
     jsonResp=stateResponse.json()
-    
+
     errorCode=jsonResp['error_code']
     if(errorCode != 0):
         switchId = switch['id']
         raise Exception("Exception attempting to turn " + switchId + " " + state + ". Message=" + str(jsonResp['msg']))
-    
     return stateResponse.json()
 
 # 
@@ -109,21 +112,28 @@ def convertStatusResponse(statusResponse, switch):
     ourResponse['name'] = switch['name']
     ourResponse['type'] = 'switch'
     
-
+    name=ourResponse['name']
+    
     errorCode = int(statusResponse['error_code'])
     if(errorCode != 0): #error
-        ourResponse['state'] = -1
         ourResponse['message'] = statusResponse['msg']
+        ourResponse['state'] = "offline"
     else:               #success   
         result = statusResponse['result']
         responseData = result['responseData']
         responseDateJson = json.loads(responseData)
         state = responseDateJson['system']['get_sysinfo']['relay_state']
-        ourResponse['state'] = state #0 or 1
         ourResponse['capabilities'] = {}
-        ourResponse['capabilities']['power'] = '/power/'
-        #emeter
-        #replayState = responseDateJson['emeter']
+        ourResponse['capabilities']['power_on'] = '/devices/'+name+'/state/on'
+        ourResponse['capabilities']['power_off'] = '/devices/'+name+'/state/off'
+
+        if state == 0: 
+            ourResponse['state'] = "off"
+        elif state == 1:
+            ourResponse['state'] = "on"
+        else:
+            ourResponse['state'] = "offline"
+        
     return ourResponse
    
 #

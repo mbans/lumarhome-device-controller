@@ -2,102 +2,132 @@ from yeelight import discover_bulbs
 from yeelight import Bulb
 
 import json
-from yeelight.main import BulbException
 
-bulbDict={}
-bulbs=[]
-
+yeelightDict={}
 
 def getStatuses():
-    print "Retrieving bulb statuses"
-    if len(bulbs) == 0: 
+    if len(yeelightDict.keys()) == 0: 
         discover()
     
     statuses = []
-    
-    for b in bulbs:
-        bulb=json.loads(json.dumps(b))
-        statuses.append({"name" : bulb['name'], "powerStatus" : bulb['powerStatus']})
+    for bulb in yeelightDict:
+        currentBulb=convertYeelight(bulb)
+        statuses.append({"name" : currentBulb['name'], "state" : currentBulb['state']})
     return statuses
 
 
 def getBulb(bulbName):
-        
-    if bulbName not in bulbDict.keys:
-        discover()
+    bulb = yeelightDict[bulbName]
+    if bulb is None: 
+        raise Exception("Could not find bulb " + bulbName)
+
+    return convertYeelight(bulb)
+
+
+#Give a 'Bulb' produced a Dict representation of the bulb
+def convertYeelight(bulb):
+    thisBulb={} #this bulb
+    bulbJson=json.loads(json.dumps(bulb))
+    capabilities=json.loads(json.dumps(bulbJson['capabilities']))
     
-    ip=bulbDict[bulbName];
-    return Bulb(ip)
-      
+    #Build up the bulb info we'll send back
+    #Check the name of the bulb here
+    bulbName=str(capabilities['name'])
+    bulbIp = bulb['ip']
+
+    thisBulb['ip'] = bulbIp
+    thisBulb['name'] = bulbName
+    thisBulb['port'] = bulb['port']
+    thisBulb['id'] = capabilities['id']
+    thisBulb['bright'] = capabilities['bright']
+    thisBulb['state'] = capabilities['power']
+    thisBulb['type'] = 'yeelight'
+    
+    #Operarions available
+    
+    thisBulb['capabilities'] = {
+                                'power_on' :   '/devices/'+bulbName+'/state/on',
+                                'power_off' :  '/devices/'+bulbName+'/state/off',
+                                'brightness' : '/devices/'+bulbName+'/brightness/',
+                                'hue' :        '/devices/'+bulbName+'/hue'
+                             }
+    return thisBulb
 
 def brightness(bulbName, brightness):
-    print "Setting bulbName brightness to " + brightness
     bulb=getBulb(bulbName)
     bulb.turn_on()
     bulb.set_brightness(int(brightness))    
+    return bulb
 
 def hue(bulbName, hue):
-    print "Setting bulbName hue to " + str(hue)
     bulb=getBulb(bulbName)
     bulb.set_hsv(int(hue), 100) #hue (0-359)
+    return bulb
+    
+def rgb(bulbName, hue):
+    bulb=getBulb(bulbName)
+    bulb.set_hsv(int(hue), 100) #hue (0-359)
+    return bulb
 
 def power(bulbName, status):
-    bulb = getBulb(bulbName)
+    global yeelightDict
+    actualBulb = getRealYeelightBulb(bulbName)
+
     if(status == "on"):
-        bulb.turn_on()
+        actualBulb.turn_on()
+        yeelightDict[bulbName]["state"] = "on"
         print "Turning " + bulbName + " on"
     else:
-        bulb.turn_off()
+        actualBulb.turn_off()
+        yeelightDict[bulbName]["state"] = "off"
         print "Turning " + bulbName + " off"
-
+    
+    return yeelightDict[bulbName]
 
 def powerAll(power):
-    if len(bulbDict)==0:
+    if len(yeelightDict)==0:
         discover()
         
-    for bulbName in bulbDict:
+    for bulbName in yeelightDict.keys():
         power(bulbName,power)
-        
 
-def discover(username):
-    global bulbs 
-    global bulbDict
+    return yeelightDict
+
+def discover():
+    global yeelightDict 
+    yeelightDict={}
     
-    bulbDict={}
+    #Retrieves the yeelights from the network
+    yeeLights = discover_bulbs()
     
-    discoveredBulbs = discover_bulbs()
-
-    bulbs=[]
-    idx=0
-    for b in discoveredBulbs:
-        bulbInfo={} #this bulb
-        bulb=json.loads(json.dumps(b))
-        capabilities=json.loads(json.dumps(bulb['capabilities']))
+    toReturn = []
+    for yeeLight in yeeLights: 
+        myYeelight = convertYeelight(yeeLight)
         
-        #Build up the bulb info we'll send back
-        #Check the name of the bulb here
-        bulbName=str(capabilities['name'])
-        bulbIp = bulb['ip']
+        #Add into the global dict
+        bulbName = myYeelight["name"]
+        yeelightDict[bulbName] = myYeelight
 
-        bulbInfo['ip'] = bulbIp
-        bulbInfo['name'] = bulbName
-        bulbInfo['port'] = bulb['port']
-        bulbInfo['id'] = capabilities['id']
-        bulbInfo['powerStatus'] = capabilities['power']
-        bulbInfo['bright'] = capabilities['bright']
-        bulbInfo['state'] = capabilities['power']
-        bulbInfo['type'] = 'yeelight'
-        
-        #Operarions available
-        bulbInfo['capabilities'] = {'power' : '/power/',
-                                    'brightness' : '/brightness/',
-                                    'hue' : '/hue/',
-                                    'rgb' : '/rgb/'}
-                                            
-        bulbs.append(bulbInfo)
-        bulbDict[bulbName] = bulbIp;
-        idx=idx+1
+        toReturn.append(myYeelight)
+        print "Found " + bulbName
     
-    print ("Discovered " + str(len(discoveredBulbs)) + " bulbs: " + str(bulbDict.keys()))
+    print "Discovered " + str(len(yeeLights)) + " YeeLights " + str(yeelightDict.keys())
+    
+    return toReturn
+    
+#Creates a representation of the 'real' Yeelights into our own representation and returns in a list
+def convertYeelights():
+    toReturn = []
+    for bulb in yeelightDict.values():
+        toReturn.append(convertYeelight(bulb))
 
-    return bulbs
+    return toReturn
+
+def getRealYeelightBulb(bulbName):
+    if(len(yeelightDict.keys()) == 0):
+        discover()
+    
+    if bulbName not in yeelightDict.keys():
+        raise Exception("No Yeelight named " + bulbName)
+    
+    return Bulb(yeelightDict[bulbName]["ip"])

@@ -5,23 +5,26 @@ import json
 #The YeeLight names didn't appear for some reason, so manually added here
 #Will add a step that makes user register a name with the bulb via UI
 
-bulb = Bulb(ip="192.168.0.102",effect="smooth")
-bulb.set_name("thai_lamp")
+#bulb = Bulb(ip="192.168.0.102",effect="smooth")
+#bulb.set_name("livingroom_biglight")
 
-bulb = Bulb(ip="192.168.0.104", effect="smooth")
-bulb.set_name("livingroom_biglight")
+#bulb = Bulb(ip="192.168.0.104", effect="smooth")
+#bulb.set_name("livingroom_biglight")
 
-bulb = Bulb(ip="192.168.0.100",effect="smooth")
-bulb.set_name("livingroom_littlelight")
+#bulb = Bulb(ip="192.168.0.100",effect="smooth")
+#bulb.set_name("livingroom_littlelight")
 
-bulb = Bulb("192.168.0.101")
-bulb.set_name("bedroom_lucy")
+#bulb = Bulb("192.168.0.101")
+#bulb.set_name("bedroom_lucy")
+
+#bulb = Bulb("192.168.0.105")
+#bulb.set_name("office")
 
 bulb = Bulb("192.168.0.105")
-bulb.set_name("office")
+bulb.set_name("office_lamp")
 
-bulb = Bulb("192.168.0.103")
-bulb.set_name("bedroom_martin")
+#bulb = Bulb("192.168.0.112")
+#bulb.set_name("bedroom_martin")
 
 
 #id=0x00000000035aba47, ip=192.168.0.102 => Thai lamp
