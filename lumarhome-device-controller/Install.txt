@@ -1,0 +1,22 @@
+Below need to be installed into VirtualEnvironment 
+Wonder if this can be automated same way as json.package
+
+
+git clone https://github.com/mbans/lumarhome-device-controller.git
+
+1. Switch to Virtual ENV
+a. cd <virvial-env>
+b. source bin/activate
+
+2. Install the Python from PIP
+pip install yeelight
+pip install requests 
+
+
+3. Running lumarhome-device-controller
+
+
+c. Running command
+sudo su - root
+
+3. nohup python lumarhome_rest.py &
